@@ -21,8 +21,8 @@ author_email = "your@email.com"
 [tool.briefcase.app.jazztrainer]
 formal_name = "Jazz Trainer"
 description = "Jazz chord training app"
-sources = ["src/jazz_trainer"]
+sources = ["src"]
 
 [tool.briefcase.app.jazztrainer.android]
-requires = ["kivy", "pyjnius"]
+requires = ["kivy"]
 
