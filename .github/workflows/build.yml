@@ -25,7 +25,7 @@ jobs:
       
       - name: Build APK with Briefcase
         run: |
-          cd ${{ github.workspace }}
+          cd jazztrainer
           briefcase build android
         timeout-minutes: 120
       
@@ -33,14 +33,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: jazz-trainer-apk
-          path: build/jazz-trainer/android/gradle/app/outputs/apk/debug/*.apk
+          path: jazz_trainer/build/jazzx-trainer/android/gradle/app/outputs/apk/debug/*.apk
           retention-days: 30
       
       - name: Create Release
         if: success()
         uses: softprops/action-gh-release@v2
         with:
-          files: build/jazz-trainer/android/gradle/app/outputs/apk/debug/*.apk
+          files: jazzx_trainer/build/jazzx-trainer/android/gradle/app/outputs/apk/debug/*.apk
           tag_name: build-${{ github.run_number }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
