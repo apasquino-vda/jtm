@@ -1,23 +1,17 @@
 import random
 import time
-import sys
 import threading
 import math
-import os
 
-os.environ['SDL_AUDIODRIVER'] = 'android'
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.core.window import Window
+from kivy.graphics import Color, Rectangle
 
-# --- PREVENT SCREEN LOCK ON ANDROID ---
-try:
-    from jnius import autoclass
-    PythonActivity = autoclass('org.kivy.android.PythonActivity')
-    activity = PythonActivity.mActivity
-    WindowManager = autoclass('android.view.WindowManager')
-    activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-except Exception:
-    pass
-
-# --- MUSICAL DATA STORES ---
+# --- MUSICAL DATA ---
 roots = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
 qualities = ['maj7', 'm7', '7']
 all_jazz_chords = [f"{root}{quality}" for root in roots for quality in qualities]
@@ -30,7 +24,7 @@ major_251_sequences = [
 ]
 
 state = {
-    "mode": None,          
+    "mode": None,
     "is_step_mode": False,
     "bpm": 30,
     "running": True,
@@ -48,7 +42,7 @@ try:
     pygame.mixer.init()
     
     sample_rate = 44100
-    duration = 0.03  
+    duration = 0.03
     t = np.linspace(0, duration, int(sample_rate * duration), False)
     wave = np.sin(2 * math.pi * 1200 * t) * np.exp(-t * 200)
     audio_data = (wave * 32767).astype(np.int16)
@@ -68,7 +62,6 @@ def play_tick_sound():
 def get_countdown_dots(step):
     return "[" + "  .  " * (step + 1) + "     " * (3 - step) + "]"
 
-# --- BACKGROUND ENGINE ---
 def chord_engine_loop(current_loop_id, update_ui_callback=None):
     while state["running"] and state["mode"] is not None and state["loop_id"] == current_loop_id:
         if not state["is_step_mode"]:
@@ -98,15 +91,6 @@ def chord_engine_loop(current_loop_id, update_ui_callback=None):
         else:
             time.sleep(0.1)
 
-# --- KIVY GUI ---
-from kivy.app import App
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.label import Label
-from kivy.uix.button import Button
-from kivy.core.window import Window
-from kivy.graphics import Color, Rectangle
-
 Window.fullscreen = True
 Window.orientation = 'portrait'
 
@@ -114,10 +98,8 @@ class JazzTrainerApp(App):
     def build(self):
         self.title = "Jazz Trainer"
         
-        # Root container
         self.root_box = BoxLayout(orientation='vertical', padding=30, spacing=0, size_hint=(1, 1))
         
-        # Dark background
         with self.root_box.canvas.before:
             Color(0.07, 0.07, 0.07, 1)
             self.bg_rect = Rectangle(size=self.root_box.size, pos=self.root_box.pos)
@@ -139,42 +121,20 @@ class JazzTrainerApp(App):
         
         layout = BoxLayout(orientation='vertical', padding=30, spacing=15, size_hint=(1, 1))
         
-        # Title
-        title = Label(
-            text="Jazz Training Mode",
-            font_size='22sp',
-            color=(1, 1, 1, 1),
-            bold=True,
-            size_hint_y=0.25
-        )
+        title = Label(text="Jazz Training Mode", size_hint_y=0.25, font_size='22sp', color=(1, 1, 1, 1), bold=True)
         layout.add_widget(title)
         
-        # Practice Chords button
-        btn_chords = Button(
-            text="Practice Chords",
-            font_size='12sp',
-            size_hint_y=0.25
-        )
+        btn_chords = Button(text="Practice Chords", size_hint_y=0.25, font_size='12sp')
         btn_chords.background_color = (0.13, 0.13, 0.13, 1)
         btn_chords.bind(on_press=lambda x: self.start_session("chords"))
         layout.add_widget(btn_chords)
         
-        # Practice 2/5/1 button
-        btn_251 = Button(
-            text="Practice 2/5/1",
-            font_size='12sp',
-            size_hint_y=0.25
-        )
+        btn_251 = Button(text="Practice 2/5/1", size_hint_y=0.25, font_size='12sp')
         btn_251.background_color = (0.13, 0.13, 0.13, 1)
         btn_251.bind(on_press=lambda x: self.start_session("251"))
         layout.add_widget(btn_251)
         
-        # Exit button
-        btn_exit = Button(
-            text="Exit",
-            font_size='12sp',
-            size_hint_y=0.25
-        )
+        btn_exit = Button(text="Exit", size_hint_y=0.25, font_size='12sp')
         btn_exit.background_color = (0.83, 0.19, 0.19, 1)
         btn_exit.bind(on_press=self.stop)
         layout.add_widget(btn_exit)
@@ -189,35 +149,15 @@ class JazzTrainerApp(App):
         
         layout = BoxLayout(orientation='vertical', padding=30, spacing=15, size_hint=(1, 1))
         
-        # Chord label - large display
-        self.chord_label = Label(
-            text="Ready",
-            font_size='54sp',
-            color=(1, 0.7, 0, 1),
-            bold=True,
-            size_hint_y=0.25
-        )
+        self.chord_label = Label(text="Ready", font_size='54sp', color=(1, 0.7, 0, 1), size_hint_y=0.25, bold=True)
         layout.add_widget(self.chord_label)
         
-        # Dots label
-        self.dots_label = Label(
-            text="[  .   .   .   .  ]",
-            font_size='16sp',
-            color=(0.33, 0.33, 0.33, 1),
-            size_hint_y=0.08
-        )
+        self.dots_label = Label(text="[  .   .   .   .  ]", font_size='16sp', color=(0.33, 0.33, 0.33, 1), size_hint_y=0.08)
         layout.add_widget(self.dots_label)
         
-        # BPM label
-        self.bpm_label = Label(
-            text="30 BPM",
-            font_size='16sp',
-            color=(1, 1, 1, 1),
-            size_hint_y=0.08
-        )
+        self.bpm_label = Label(text="30 BPM", font_size='16sp', color=(1, 1, 1, 1), size_hint_y=0.08)
         layout.add_widget(self.bpm_label)
         
-        # Row 1: Slower / Faster
         row1 = GridLayout(cols=2, spacing=8, size_hint_y=0.12)
         
         btn_slower = Button(text="Slower", font_size='12sp')
@@ -232,7 +172,6 @@ class JazzTrainerApp(App):
         
         layout.add_widget(row1)
         
-        # Row 2: Step / Resume
         row2 = GridLayout(cols=2, spacing=8, size_hint_y=0.12)
         
         self.step_btn = Button(text="Step", font_size='12sp')
@@ -247,12 +186,7 @@ class JazzTrainerApp(App):
         
         layout.add_widget(row2)
         
-        # Return to Menu button
-        btn_menu = Button(
-            text="Return to Menu",
-            font_size='11sp',
-            size_hint_y=0.1
-        )
+        btn_menu = Button(text="Return to Menu", size_hint_y=0.1, font_size='11sp')
         btn_menu.background_color = (0.53, 0.53, 0.53, 1)
         btn_menu.bind(on_press=lambda x: self.setup_menu())
         layout.add_widget(btn_menu)
@@ -311,6 +245,3 @@ class JazzTrainerApp(App):
     def on_stop(self):
         state["running"] = False
         return True
-
-if __name__ == '__main__':
-    JazzTrainerApp().run()
