@@ -26,15 +26,13 @@ jobs:
       - name: Build APK with Buildozer
         run: |
           cd ${{ github.workspace }}
-          buildozer android debug 2>&1 | tee build.log
+          buildozer android debug
         timeout-minutes: 120
       
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build.log
+      - name: Check if APK was created
+        run: |
+          ls -la bin/ || echo "bin/ directory not found"
+          find . -name "*.apk" -type f || echo "No APK files found"
       
       - name: Upload APK artifact
         if: success()
@@ -43,13 +41,5 @@ jobs:
           name: jazz-trainer-apk
           path: bin/*.apk
           retention-days: 30
-      
-      - name: Create Release
-        if: success()
-        uses: softprops/action-gh-release@v2
-        with:
-          files: bin/*.apk
-          tag_name: build-${{ github.run_number }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
