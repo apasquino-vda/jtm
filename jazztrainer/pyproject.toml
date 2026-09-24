@@ -20,3 +20,21 @@ version = "0.0.1"
 description = "A jazz training application"
 sources = ["src/jazztrainer"]
 
+[tool.briefcase.app.jazztrainer]
+formal_name = "Jazz Trainer"
+description = "A jazz training application"
+bundle = "com.example"
+url = "https://github.com/yourusername/jazztrainer"
+author = "Andrea Pasquino"
+author_email = "Andrea.Pasquino@insight.com"
+license = "MIT"
+
+[tool.briefcase.app.jazztrainer.linux]
+requires = []
+
+[tool.briefcase.app.jazztrainer.windows]
+requires = []
+
+[tool.briefcase.app.jazztrainer.macos]
+requires = []
+
