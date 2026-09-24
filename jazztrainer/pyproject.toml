@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "jazztrainer"
 version = "0.0.1"
-description = "Jazz Trainer Application"
+description = "A jazz training application"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {text = "MIT"}  # ← ADD THIS LINE (or use the appropriate license)
+license = {text = "MIT"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Andrea Pasquino", email = "Andrea.Pasquino@insight.com"}
 ]
 
 [tool.briefcase]
