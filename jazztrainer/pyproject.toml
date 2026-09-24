@@ -5,18 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "jazztrainer"
 version = "1.0.0"
-description = "Jazz chord training app"
-authors = [{name = "Your Name", email = "your@email.com"}]
-requires-python = ">=3.8"
-dependencies = ["kivy"]
 
 [tool.briefcase]
 project_name = "Jazz Trainer"
 bundle = "org.jazztrainer"
+author = "Andrea Pasquino"
+author_email = "andrea@example.com"
 url = "https://example.com"
-license = "MIT"
-author = "Your Name"
-author_email = "your@email.com"
 
 [tool.briefcase.app.jazztrainer]
 formal_name = "Jazz Trainer"
