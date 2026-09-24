@@ -25,7 +25,7 @@ jobs:
       
       - name: Build APK with Briefcase
         run: |
-          cd jazz_trainer
+          cd jazztrainer
           briefcase build android
         timeout-minutes: 120
       
@@ -33,6 +33,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: jazz-trainer-apk
-          path: jazz_trainer/build/jazztrainer/android/gradle/app/build/outputs/apk/debug/*.apk
+          path: jazztrainer/build/jazztrainer/android/gradle/app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
