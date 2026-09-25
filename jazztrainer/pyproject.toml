@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,9 +8,7 @@ version = "0.0.1"
 description = "A jazz training application"
 readme = "README.md"
 requires-python = ">=3.8"
-dependencies = [
-    "toga==0.4.1",
-]
+dependencies = []
 license = {text = "MIT"}
 authors = [
     {name = "Andrea Pasquino", email = "Andrea.Pasquino@insight.com"}
@@ -43,6 +41,4 @@ requires = []
 requires = []
 
 [tool.briefcase.app.jazztrainer.android]
-requires = [
-    "toga==0.4.1",
-]
+requires = []

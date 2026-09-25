@@ -1,13 +1,8 @@
 import random
 import time
-import sys
 import threading
-import math
-import os
 
-os.environ['SDL_AUDIODRIVER'] = 'android'
-
-# --- PREVENT SCREEN LOCK ON ANDROID ---
+# --- PREVENT SCREEN LOCK ---
 try:
     from jnius import autoclass
     PythonActivity = autoclass('org.kivy.android.PythonActivity')
@@ -17,7 +12,7 @@ try:
 except Exception:
     pass
 
-# --- MUSICAL DATA STORES ---
+# --- MUSICAL DATA ---
 roots = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
 qualities = ['maj7', 'm7', '7']
 all_jazz_chords = [f"{root}{quality}" for root in roots for quality in qualities]
@@ -39,29 +34,21 @@ state = {
     "loop_id": 0
 }
 
-# --- AUDIO (Pure Python - no pygame/numpy) ---
 def play_tick_sound():
-    """Play a simple beep sound using Android audio."""
     try:
         from jnius import autoclass
-        
-        # Get Android audio context
         PythonActivity = autoclass('org.kivy.android.PythonActivity')
         activity = PythonActivity.mActivity
         context = activity.getApplicationContext()
-        
-        # Use Android's built-in Ringtone for a beep
         RingtoneManager = autoclass('android.media.RingtoneManager')
         ringtone = RingtoneManager.getRingtone(context, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
         ringtone.play()
     except Exception:
-        # Fallback: silent if audio not available
         pass
 
 def get_countdown_dots(step):
     return "[" + "  .  " * (step + 1) + "     " * (3 - step) + "]"
 
-# --- BACKGROUND ENGINE ---
 def chord_engine_loop(current_loop_id, update_ui_callback=None):
     while state["running"] and state["mode"] is not None and state["loop_id"] == current_loop_id:
         if not state["is_step_mode"]:
@@ -91,172 +78,136 @@ def chord_engine_loop(current_loop_id, update_ui_callback=None):
         else:
             time.sleep(0.1)
 
-# --- TOGA GUI ---
-import toga
-from toga.style import Pack
-from toga.constants import ROW, COLUMN
+# --- MINIMAL ANDROID UI ---
+from jnius import autoclass, PythonJavaClass, java_method
 
-class JazzTrainerApp(toga.App):
-    def startup(self):
-        """Build and show the Toga UI."""
+PythonActivity = autoclass('org.kivy.android.PythonActivity')
+LinearLayout = autoclass('android.widget.LinearLayout')
+Button = autoclass('android.widget.Button')
+TextView = autoclass('android.widget.TextView')
+LayoutParams = autoclass('android.widget.LinearLayout$LayoutParams')
+
+class ClickListener(PythonJavaClass):
+    __javainterfaces__ = ['android/view/View$OnClickListener']
+    
+    def __init__(self, callback):
+        super().__init__()
+        self.callback = callback
+    
+    @java_method('(Landroid/view/View;)V')
+    def onClick(self, view):
+        try:
+            self.callback()
+        except Exception as e:
+            print(f"Error: {e}")
+
+class JazzTrainerUI:
+    def __init__(self):
+        self.activity = PythonActivity.mActivity
+        self.main_layout = None
+        self.chord_label = None
+        self.dots_label = None
+        self.bpm_label = None
+        self.step_btn = None
         self.show_menu()
-
+    
     def show_menu(self):
-        """Display the main menu."""
         state["mode"] = None
         state["progression_queue"] = []
         state["is_step_mode"] = False
         
-        # Main container
-        main_box = toga.Box(style=Pack(direction=COLUMN, padding=20, flex=1))
+        self.main_layout = LinearLayout(self.activity)
+        self.main_layout.setOrientation(LinearLayout.VERTICAL)
         
-        # Title
-        title = toga.Label(
-            'Jazz Training Mode',
-            style=Pack(padding=10, font_size=22, text_align='center', flex=0)
-        )
-        main_box.add(title)
+        title = TextView(self.activity)
+        title.setText("Jazz Training Mode")
+        title.setTextSize(24)
+        title.setPadding(20, 20, 20, 20)
+        self.main_layout.addView(title)
         
-        # Spacer
-        spacer1 = toga.Box(style=Pack(flex=1))
-        main_box.add(spacer1)
+        btn_chords = Button(self.activity)
+        btn_chords.setText("Practice Chords")
+        btn_chords.setOnClickListener(ClickListener(lambda: self.start_session("chords")))
+        self.main_layout.addView(btn_chords, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
-        # Practice Chords button
-        btn_chords = toga.Button(
-            'Practice Chords',
-            on_press=lambda w: self.start_session('chords'),
-            style=Pack(padding=10, flex=0, width=300)
-        )
-        main_box.add(btn_chords)
+        btn_251 = Button(self.activity)
+        btn_251.setText("Practice 2/5/1")
+        btn_251.setOnClickListener(ClickListener(lambda: self.start_session("251")))
+        self.main_layout.addView(btn_251, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
-        # Practice 2/5/1 button
-        btn_251 = toga.Button(
-            'Practice 2/5/1',
-            on_press=lambda w: self.start_session('251'),
-            style=Pack(padding=10, flex=0, width=300)
-        )
-        main_box.add(btn_251)
+        btn_exit = Button(self.activity)
+        btn_exit.setText("Exit")
+        btn_exit.setOnClickListener(ClickListener(self.exit_app))
+        self.main_layout.addView(btn_exit, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
-        # Spacer
-        spacer2 = toga.Box(style=Pack(flex=1))
-        main_box.add(spacer2)
-        
-        # Exit button
-        btn_exit = toga.Button(
-            'Exit',
-            on_press=self.exit_app,
-            style=Pack(padding=10, flex=0, width=300)
-        )
-        main_box.add(btn_exit)
-        
-        self.main_window.content = main_box
-
+        self.activity.setContentView(self.main_layout)
+    
     def start_session(self, mode):
-        """Start a training session."""
         state["mode"] = mode
         state["loop_id"] += 1
         
-        # Main container
-        main_box = toga.Box(style=Pack(direction=COLUMN, padding=20, flex=1))
+        self.main_layout = LinearLayout(self.activity)
+        self.main_layout.setOrientation(LinearLayout.VERTICAL)
+        self.main_layout.setPadding(20, 20, 20, 20)
         
-        # Chord display (large)
-        self.chord_label = toga.Label(
-            'Ready',
-            style=Pack(padding=10, font_size=48, text_align='center', flex=0)
-        )
-        main_box.add(self.chord_label)
+        self.chord_label = TextView(self.activity)
+        self.chord_label.setText("Ready")
+        self.chord_label.setTextSize(48)
+        self.chord_label.setPadding(10, 10, 10, 10)
+        self.main_layout.addView(self.chord_label)
         
-        # Dots display
-        self.dots_label = toga.Label(
-            '[  .   .   .   .  ]',
-            style=Pack(padding=5, font_size=14, text_align='center', flex=0)
-        )
-        main_box.add(self.dots_label)
+        self.dots_label = TextView(self.activity)
+        self.dots_label.setText("[  .   .   .   .  ]")
+        self.dots_label.setTextSize(16)
+        self.main_layout.addView(self.dots_label)
         
-        # BPM display
-        self.bpm_label = toga.Label(
-            '30 BPM',
-            style=Pack(padding=5, font_size=14, text_align='center', flex=0)
-        )
-        main_box.add(self.bpm_label)
+        self.bpm_label = TextView(self.activity)
+        self.bpm_label.setText("30 BPM")
+        self.bpm_label.setTextSize(16)
+        self.main_layout.addView(self.bpm_label)
         
-        # Spacer
-        spacer1 = toga.Box(style=Pack(flex=1))
-        main_box.add(spacer1)
+        btn_slower = Button(self.activity)
+        btn_slower.setText("Slower")
+        btn_slower.setOnClickListener(ClickListener(self.slow_down))
+        self.main_layout.addView(btn_slower, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
-        # Row 1: Slower / Faster
-        row1 = toga.Box(style=Pack(direction=ROW, padding=5, flex=0))
+        btn_faster = Button(self.activity)
+        btn_faster.setText("Faster")
+        btn_faster.setOnClickListener(ClickListener(self.speed_up))
+        self.main_layout.addView(btn_faster, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
-        btn_slower = toga.Button(
-            'Slower',
-            on_press=self.slow_down,
-            style=Pack(padding=5, flex=1)
-        )
-        row1.add(btn_slower)
+        self.step_btn = Button(self.activity)
+        self.step_btn.setText("Step")
+        self.step_btn.setOnClickListener(ClickListener(self.advance_step))
+        self.main_layout.addView(self.step_btn, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
-        btn_faster = toga.Button(
-            'Faster',
-            on_press=self.speed_up,
-            style=Pack(padding=5, flex=1)
-        )
-        row1.add(btn_faster)
+        btn_resume = Button(self.activity)
+        btn_resume.setText("Resume")
+        btn_resume.setOnClickListener(ClickListener(self.resume_beat))
+        self.main_layout.addView(btn_resume, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
-        main_box.add(row1)
+        btn_menu = Button(self.activity)
+        btn_menu.setText("Return to Menu")
+        btn_menu.setOnClickListener(ClickListener(self.show_menu))
+        self.main_layout.addView(btn_menu, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
-        # Row 2: Step / Resume
-        row2 = toga.Box(style=Pack(direction=ROW, padding=5, flex=0))
+        self.activity.setContentView(self.main_layout)
         
-        self.step_btn = toga.Button(
-            'Step',
-            on_press=self.advance_step,
-            style=Pack(padding=5, flex=1)
-        )
-        row2.add(self.step_btn)
-        
-        self.resume_btn = toga.Button(
-            'Resume',
-            on_press=self.resume_beat,
-            style=Pack(padding=5, flex=1)
-        )
-        row2.add(self.resume_btn)
-        
-        main_box.add(row2)
-        
-        # Spacer
-        spacer2 = toga.Box(style=Pack(flex=1))
-        main_box.add(spacer2)
-        
-        # Return to Menu button
-        btn_menu = toga.Button(
-            'Return to Menu',
-            on_press=lambda w: self.show_menu(),
-            style=Pack(padding=10, flex=0, width=300)
-        )
-        main_box.add(btn_menu)
-        
-        self.main_window.content = main_box
-        
-        # Start the chord engine in background
-        threading.Thread(
-            target=chord_engine_loop,
-            args=(state["loop_id"], self.update_display),
-            daemon=True
-        ).start()
-
+        threading.Thread(target=chord_engine_loop, args=(state["loop_id"], self.update_display), daemon=True).start()
+    
     def update_display(self, chord, dots):
-        """Update the UI labels from the background thread."""
-        self.chord_label.text = chord
-        self.dots_label.text = dots
-        self.bpm_label.text = f"{state['bpm']} BPM"
-
-    def advance_step(self, widget):
-        """Advance to the next chord (step mode)."""
+        try:
+            self.chord_label.setText(chord)
+            self.dots_label.setText(dots)
+            self.bpm_label.setText(f"{state['bpm']} BPM")
+        except:
+            pass
+    
+    def advance_step(self):
         if state["mode"] is None:
             return
-        
         state["is_step_mode"] = True
-        self.step_btn.text = "Step ▶"
-        
+        self.step_btn.setText("Step ▶")
         if state["mode"] == "chords":
             state["current_chord"] = random.choice(all_jazz_chords)
         elif state["mode"] == "251":
@@ -264,39 +215,32 @@ class JazzTrainerApp(toga.App):
                 _, root_2, root_5, root_1 = random.choice(major_251_sequences)
                 state["progression_queue"] = [f"{root_2}m7", f"{root_5}7", f"{root_1}maj7"]
             state["current_chord"] = state["progression_queue"].pop(0)
-        
         play_tick_sound()
         self.update_display(state["current_chord"], "[  STEP  ]")
-
-    def resume_beat(self, widget):
-        """Resume automatic chord progression."""
+    
+    def resume_beat(self):
         if state["mode"] is None:
             return
-        
         state["is_step_mode"] = False
-        self.step_btn.text = "Step"
-        self.dots_label.text = "[  .   .   .   .  ]"
-
-    def speed_up(self, widget):
-        """Increase BPM."""
+        self.step_btn.setText("Step")
+        self.dots_label.setText("[  .   .   .   .  ]")
+    
+    def speed_up(self):
         if state["mode"] is None:
             return
         state["bpm"] = min(state["bpm"] + 5, 240)
-        self.bpm_label.text = f"{state['bpm']} BPM"
-
-    def slow_down(self, widget):
-        """Decrease BPM."""
+        self.bpm_label.setText(f"{state['bpm']} BPM")
+    
+    def slow_down(self):
         if state["mode"] is None:
             return
         state["bpm"] = max(state["bpm"] - 5, 10)
-        self.bpm_label.text = f"{state['bpm']} BPM"
-
-    def exit_app(self, widget):
-        """Exit the application."""
+        self.bpm_label.setText(f"{state['bpm']} BPM")
+    
+    def exit_app(self):
         state["running"] = False
-        self.exit()
-
+        import sys
+        sys.exit(0)
 
 if __name__ == '__main__':
-    app = JazzTrainerApp('Jazz Trainer', 'com.example.jazztrainer')
-    app.main_loop()
+    ui = JazzTrainerUI()
