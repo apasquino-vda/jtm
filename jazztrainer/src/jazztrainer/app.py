@@ -87,20 +87,6 @@ Button = autoclass('android.widget.Button')
 TextView = autoclass('android.widget.TextView')
 LayoutParams = autoclass('android.widget.LinearLayout$LayoutParams')
 
-class ClickListener(PythonJavaClass):
-    __javainterfaces__ = ['android/view/View$OnClickListener']
-    
-    def __init__(self, callback):
-        super().__init__()
-        self.callback = callback
-    
-    @java_method('(Landroid/view/View;)V')
-    def onClick(self, view):
-        try:
-            self.callback()
-        except Exception as e:
-            print(f"Error: {e}")
-
 class JazzTrainerUI:
     def __init__(self):
         self.activity = PythonActivity.mActivity
@@ -110,6 +96,24 @@ class JazzTrainerUI:
         self.bpm_label = None
         self.step_btn = None
         self.show_menu()
+    
+    def create_click_listener(self, callback):
+        """Create Android click listener dynamically."""
+        class ClickListener(PythonJavaClass):
+            __javainterfaces__ = ['android/view/View$OnClickListener']
+            
+            def __init__(self, cb):
+                super().__init__()
+                self.callback = cb
+            
+            @java_method('(Landroid/view/View;)V')
+            def onClick(self, view):
+                try:
+                    self.callback()
+                except Exception as e:
+                    print(f"Error: {e}")
+        
+        return ClickListener(callback)
     
     def show_menu(self):
         state["mode"] = None
@@ -127,17 +131,17 @@ class JazzTrainerUI:
         
         btn_chords = Button(self.activity)
         btn_chords.setText("Practice Chords")
-        btn_chords.setOnClickListener(ClickListener(lambda: self.start_session("chords")))
+        btn_chords.setOnClickListener(self.create_click_listener(lambda: self.start_session("chords")))
         self.main_layout.addView(btn_chords, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
         btn_251 = Button(self.activity)
         btn_251.setText("Practice 2/5/1")
-        btn_251.setOnClickListener(ClickListener(lambda: self.start_session("251")))
+        btn_251.setOnClickListener(self.create_click_listener(lambda: self.start_session("251")))
         self.main_layout.addView(btn_251, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
         btn_exit = Button(self.activity)
         btn_exit.setText("Exit")
-        btn_exit.setOnClickListener(ClickListener(self.exit_app))
+        btn_exit.setOnClickListener(self.create_click_listener(self.exit_app))
         self.main_layout.addView(btn_exit, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
         self.activity.setContentView(self.main_layout)
@@ -168,27 +172,27 @@ class JazzTrainerUI:
         
         btn_slower = Button(self.activity)
         btn_slower.setText("Slower")
-        btn_slower.setOnClickListener(ClickListener(self.slow_down))
+        btn_slower.setOnClickListener(self.create_click_listener(self.slow_down))
         self.main_layout.addView(btn_slower, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
         btn_faster = Button(self.activity)
         btn_faster.setText("Faster")
-        btn_faster.setOnClickListener(ClickListener(self.speed_up))
+        btn_faster.setOnClickListener(self.create_click_listener(self.speed_up))
         self.main_layout.addView(btn_faster, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
         self.step_btn = Button(self.activity)
         self.step_btn.setText("Step")
-        self.step_btn.setOnClickListener(ClickListener(self.advance_step))
+        self.step_btn.setOnClickListener(self.create_click_listener(self.advance_step))
         self.main_layout.addView(self.step_btn, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
         btn_resume = Button(self.activity)
         btn_resume.setText("Resume")
-        btn_resume.setOnClickListener(ClickListener(self.resume_beat))
+        btn_resume.setOnClickListener(self.create_click_listener(self.resume_beat))
         self.main_layout.addView(btn_resume, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
         btn_menu = Button(self.activity)
         btn_menu.setText("Return to Menu")
-        btn_menu.setOnClickListener(ClickListener(self.show_menu))
+        btn_menu.setOnClickListener(self.create_click_listener(self.show_menu))
         self.main_layout.addView(btn_menu, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         
         self.activity.setContentView(self.main_layout)
