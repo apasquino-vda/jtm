@@ -10,8 +10,6 @@ readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
     "toga==0.4.1",
-    "pygame==2.5.2",
-    "numpy==1.24.3",
 ]
 license = {text = "MIT"}
 authors = [
@@ -47,6 +45,4 @@ requires = []
 [tool.briefcase.app.jazztrainer.android]
 requires = [
     "toga==0.4.1",
-    "pygame==2.5.2",
-    "numpy==1.24.3",
 ]
